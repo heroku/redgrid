@@ -1,5 +1,5 @@
 %% Copyright (c) 2011 Jacob Vorreuter <jacob.vorreuter@gmail.com>
-%% 
+%%
 %% Permission is hereby granted, free of charge, to any person
 %% obtaining a copy of this software and associated documentation
 %% files (the "Software"), to deal in the Software without
@@ -8,10 +8,10 @@
 %% copies of the Software, and to permit persons to whom the
 %% Software is furnished to do so, subject to the following
 %% conditions:
-%% 
+%%
 %% The above copyright notice and this permission notice shall be
 %% included in all copies or substantial portions of the Software.
-%% 
+%%
 %% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 %% EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 %% OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -28,7 +28,7 @@
          handle_info/2, terminate/2, code_change/3]).
 
 -export([start_link/0, start_link/1, update_meta/1, nodes/0,
-         suspend/0, resume/0, reload_config/0]).
+         suspend/0, resume/0, reload_config/0, get_status/0]).
 
 -record(state, {redis_cli, opts, bin_node, ip, domain, version, meta, nodes=[],
                 status=normal, backoff}).
@@ -51,6 +51,10 @@ suspend() ->
 
 resume() ->
     gen_server:call(?MODULE, resume, 5000).
+
+-spec get_status() -> normal | suspended.
+get_status() ->
+    gen_server:call(?MODULE, get_status, 5000).
 
 %% This function reloads configuration and then resets the connection.
 %% It however expects the correct config value to already be in memory
@@ -138,6 +142,8 @@ handle_call(reload_config, _From, S = #state{status=suspended}) ->
                             domain=Domain,
                             version=Version}};
 
+handle_call(get_status, _From, #state{ status = Status } = State) ->
+    {reply, Status, State};
 
 handle_call(_Msg, _From, State = #state{}) ->
     {reply, unknown_message, State}.
@@ -317,7 +323,7 @@ connect3(StrNode, Node, Ip, Props) ->
         {ok, Addr} ->
             case re:run(StrNode, ".*@(.*)$", [{capture, all_but_first, list}]) of
                 {match, [Host]} ->
-                    connect4(Node, Addr, Host, Props);   
+                    connect4(Node, Addr, Host, Props);
                 Other ->
                     log(debug, "Failed to parse host ~s: ~p~n", [StrNode, Other]),
                     undefined

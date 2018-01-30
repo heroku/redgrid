@@ -14,6 +14,7 @@
 -export([regular_start/1]).
 -export([no_fail_start/1, reconnect_success/1, no_fail_register_node/1,
          no_fail_connect_nodes/1]).
+-export([get_status/1]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -22,7 +23,7 @@
 %%%===================================================================
 
 all() ->
-    [regular_start, {group, disconnection}].
+    [regular_start, {group, disconnection}, get_status].
 
 groups() ->
     [{disconnection, [],
@@ -131,6 +132,15 @@ no_fail_connect_nodes(_Config) ->
     true = erlang:is_process_alive(Pid),
     unlink(Pid),
     exit(Pid, shutdown).
+
+get_status(_Config) ->
+    {ok, Pid} = redgrid:start_link(),
+    normal = redgrid:get_status(),
+    redgrid:suspend(),
+    suspended = redgrid:get_status(),
+    unlink(Pid),
+    exit(Pid, shutdown).
+
 
 get_state(Proc) ->
     try
